@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Skin Disease Prediction</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+      background-size: cover;
+      background-attachment: fixed;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .overlay {
+      background-color: rgba(255, 255, 255, 0.1);
+      padding: 40px;
+      border-radius: 16px;
+      max-width: 600px;
+      width: 90%;
+      margin-top: 100px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+      backdrop-filter: blur(12px);
+      color: #ffffff;
+    }
+
+    h1, h2 {
+      color: #ffffff;
+      margin-bottom: 20px;
+    }
+
+    input[type="file"],
+    input[type="text"],
+    input[type="password"] {
+      margin-bottom: 15px;
+      padding: 12px;
+      width: 100%;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: none;
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #333;
+      box-shadow: inset 0 0 5px rgba(0,0,0,0.1);
+    }
+
+    input::placeholder {
+      color: #888;
+    }
+
+    button {
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #2980b9, #6dd5fa);
+      color: white;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: transform 0.2s ease, background-color 0.3s ease;
+      margin-top: 10px;
+    }
+
+    button:hover {
+      transform: scale(1.03);
+      background: linear-gradient(135deg, #2573a6, #5dc6eb);
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 20px;
+      width: 100%;
+      box-sizing: border-box;
+      position: absolute;
+      top: 0;
+      right: 0;
+    }
+
+    #welcome-message {
+      font-size: 1.2rem;
+      color: #e0f7fa;
+      margin-bottom: 20px;
+    }
+
+    #voting-result {
+      font-size: 1.1rem;
+      background-color: rgba(255, 255, 255, 0.15);
+      padding: 10px;
+      border-radius: 10px;
+      margin-top: 15px;
+      color: #ffffff;
+    }
+
+    #uploaded-image {
+      max-width: 100%;
+      margin-bottom: 20px;
+      display: none;
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+  </style>
+</head>
+<body>
+  <!-- Top Right Login/Register Buttons -->
+  <div class="top-bar">
+    <button onclick="showLogin()">Login</button>
+    <button onclick="showRegister()">Register</button>
+  </div>
+
+  <div class="overlay" id="main-content">
+    <h1>Upload an Image for Skin Disease Prediction</h1>
+    <form id="upload-form" enctype="multipart/form-data">
+      <input type="file" id="file" name="file" required />
+      <button type="submit">Upload & Predict</button>
+    </form>
+
+    <h2>Prediction Result:</h2>
+    
+    <img id="uploaded-image" src="" alt="Uploaded Image Preview" />
+
+    <p id="voting-result"><strong>Predicted Disease:</strong> -</p>
+  </div>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (document.getElementById("upload-form")) {
+        attachUploadHandler();
+      }
+    });
+
+    function attachUploadHandler() {
+      const uploadForm = document.getElementById("upload-form");
+      if (uploadForm) {
+        uploadForm.addEventListener("submit", function (event) {
+          event.preventDefault();
+
+          let fileInput = document.getElementById("file").files[0];
+          if (!fileInput) {
+            alert("Please select an image!");
+            return;
+          }
+
+          // Show the uploaded image
+          const uploadedImage = document.getElementById("uploaded-image");
+          uploadedImage.src = URL.createObjectURL(fileInput);
+          uploadedImage.style.display = "block";
+
+          let formData = new FormData();
+          formData.append("file", fileInput);
+
+          fetch("/", {
+            method: "POST",
+            body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+            document.getElementById("voting-result").textContent = "Predicted Disease: " + data["Voting Prediction"];
+          })
+          .catch(error => {
+            console.error("Error:", error);
+            document.getElementById("voting-result").textContent = "Prediction failed.";
+          });
+        });
+      }
+    }
+
+    function showLogin() {
+      const content = document.getElementById("main-content");
+      content.innerHTML = `
+        <h2>Login</h2>
+        <form id="login-form">
+          <input type="text" id="username" placeholder="Username" required />
+          <input type="password" id="password" placeholder="Password" required />
+          <button type="submit">Login</button>
+        </form>
+        <br>
+        <button onclick="window.location.reload()">← Back</button>
+      `;
+
+      document.getElementById("login-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const username = document.getElementById("username").value;
+        const password = document.getElementById("password").value;
+
+        const users = JSON.parse(localStorage.getItem("users")) || {};
+        if (users[username] && users[username] === password) {
+          showUploadPageWithWelcome(username);
+        } else {
+          alert("Invalid credentials.");
+        }
+      });
+    }
+
+    function showRegister() {
+      const content = document.getElementById("main-content");
+      content.innerHTML = `
+        <h2>Register</h2>
+        <form id="register-form">
+          <input type="text" id="new-username" placeholder="New Username" required />
+          <input type="password" id="new-password" placeholder="New Password" required />
+          <button type="submit">Register</button>
+        </form>
+        <br>
+        <button onclick="window.location.reload()">← Back</button>
+      `;
+
+      document.getElementById("register-form").addEventListener("submit", function (e) {
+        e.preventDefault();
+        const username = document.getElementById("new-username").value;
+        const password = document.getElementById("new-password").value;
+
+        let users = JSON.parse(localStorage.getItem("users")) || {};
+        if (users[username]) {
+          alert("Username already exists. Try logging in.");
+        } else {
+          users[username] = password;
+          localStorage.setItem("users", JSON.stringify(users));
+          alert("Registered successfully!");
+          showUploadPageWithWelcome(username);
+        }
+      });
+    }
+
+    function showUploadPageWithWelcome(username) {
+      const content = document.getElementById("main-content");
+      content.innerHTML = `
+        <div id="welcome-message">Welcome, <strong>${username}</strong>!</div>
+        <h1>Upload an Image for Skin Disease Prediction</h1>
+        <form id="upload-form" enctype="multipart/form-data">
+          <input type="file" id="file" name="file" required />
+          <button type="submit">Upload & Predict</button>
+        </form>
+        <h2>Prediction Result:</h2>
+        
+        <img id="uploaded-image" src="" alt="Uploaded Image Preview" style="max-width:100%; margin-bottom:20px; display:none; border-radius:10px; box-shadow:0 4px 20px rgba(0,0,0,0.3);" />
+
+        <p id="voting-result"><strong>Predicted Disease:</strong> -</p>
+      `;
+      attachUploadHandler();
+    }
+  </script>
+</body>
+</html>
